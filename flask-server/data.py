@@ -1,11 +1,10 @@
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import sqlite3
 import requests
-from plots import update_all_plots  # Import plot update function
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
 DATABASE = 'books.db'
 
@@ -85,10 +84,8 @@ def fetch_books(query):
 
         conn.commit()
         conn.close()
-        
-        update_all_plots()  # Call to update plots after books are added
 
-        return jsonify({"message": "Books fetched, stored, and plots updated successfully."}), 200
+        return jsonify({"message": "Books fetched and stored successfully."}), 200
 
     return jsonify({"error": "Failed to fetch books."}), 500
 
@@ -102,9 +99,47 @@ def get_books():
     conn.close()
     return jsonify(books_list)
 
-@app.route('/plots/<filename>')
-def get_plot(filename):
-    return send_from_directory('static', filename)
+def get_db_connection():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+@app.route('/genre_analysis', methods=['GET'])
+def genre_analysis():
+    conn = get_db_connection()
+    query = """
+        SELECT genre, COUNT(DISTINCT authors) AS num_authors, AVG(average_rating) AS avg_rating
+        FROM BOOK
+        WHERE average_rating IS NOT NULL
+        GROUP BY genre
+        HAVING COUNT(*) > 0
+    """
+    data = conn.execute(query).fetchall()
+    conn.close()
+    
+    result = {"genres": [], "num_authors": [], "avg_ratings": []}
+    for row in data:
+        result["genres"].append(row["genre"])
+        result["num_authors"].append(row["num_authors"])
+        result["avg_ratings"].append(row["avg_rating"])
+
+    return jsonify(result)
+
+@app.route('/top_books/<genre>', methods=['GET'])
+def top_books_by_genre(genre):
+    conn = get_db_connection()
+    query = """
+        SELECT title, authors, average_rating
+        FROM BOOK
+        WHERE genre = ? AND average_rating IS NOT NULL
+        ORDER BY average_rating DESC
+        LIMIT 10
+    """
+    books = conn.execute(query, (genre,)).fetchall()
+    conn.close()
+    
+    result = [{"title": book["title"], "authors": book["authors"], "average_rating": book["average_rating"]} for book in books]
+    return jsonify(result)
 
 if __name__ == '__main__':
     create_table()

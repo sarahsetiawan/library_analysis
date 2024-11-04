@@ -3,19 +3,22 @@ import axios from 'axios';
 
 function App() {
   const [books, setBooks] = useState([]);
-  const [view, setView] = useState("home"); // Tracks the current page view
-  const [searchQuery, setSearchQuery] = useState(""); // For filtering books locally
+  const [view, setView] = useState("home");
+  const [searchQuery, setSearchQuery] = useState("");
   const [filteredBooks, setFilteredBooks] = useState([]);
-  const [newBookQuery, setNewBookQuery] = useState(""); // For fetching new books
+  const [newBookQuery, setNewBookQuery] = useState("");
+  const [genreData, setGenreData] = useState(null);
+  const [topBooks, setTopBooks] = useState([]);
+  const [selectedGenre, setSelectedGenre] = useState(null);
 
-  // Fetch books initially and set them to both books and filteredBooks
   useEffect(() => {
     fetchBooks();
+    fetchGenreData();
   }, []);
 
   const fetchBooks = async () => {
     try {
-      const response = await axios.get('http://127.0.0.1:5000/books');
+      const response = await axios.get(`http://127.0.0.1:5000/books`);
       setBooks(response.data);
       setFilteredBooks(response.data);
     } catch (error) {
@@ -23,7 +26,40 @@ function App() {
     }
   };
 
-  // Handle search input for filtering books locally
+  const handleAddNewBooks = async () => {
+    if (newBookQuery.trim()) {
+      try {
+        const response = await axios.get(`http://127.0.0.1:5000/fetch_books/${newBookQuery}`);
+        if (response.status === 200) {
+          console.log("New books fetched and added to the database.");
+          setNewBookQuery("");
+          fetchBooks();  // Refresh book list after adding
+        }
+      } catch (error) {
+        console.error("Error fetching new books:", error);
+      }
+    }
+  };
+  const fetchGenreData = async () => {
+    try {
+      const response = await axios.get(`http://127.0.0.1:5000/genre_analysis`);
+      setGenreData(response.data);
+    } catch (error) {
+      console.error("Error fetching genre data:", error);
+    }
+  };
+
+  const fetchTopBooksByGenre = async (genre) => {
+    try {
+      const response = await axios.get(`http://127.0.0.1:5000/top_books/${genre}`);
+      setTopBooks(response.data);
+      setSelectedGenre(genre);
+      setView("topBooks");
+    } catch (error) {
+      console.error("Error fetching top books:", error);
+    }
+  };
+
   const handleSearch = (e) => {
     const query = e.target.value.toLowerCase();
     setSearchQuery(query);
@@ -36,37 +72,21 @@ function App() {
     );
   };
 
-  // Handle adding new books by querying the backend fetch_books endpoint
-  const handleAddNewBooks = async () => {
-    if (newBookQuery.trim()) {
-      try {
-        const response = await axios.get(`http://127.0.0.1:5000/fetch_books/${newBookQuery}`);
-        if (response.status === 200) {
-          console.log("New books fetched and added to the database.");
-          setNewBookQuery(""); // Clear the input after successful fetch
-          fetchBooks(); // Refresh the book list to include newly fetched books
-        }
-      } catch (error) {
-        console.error("Error fetching new books:", error);
-      }
+  const handleNavigation = (view) => {
+    setView(view);
+    if (view === "home") {
+      setSearchQuery("");
+      setFilteredBooks(books);
     }
   };
 
-    // Navigation handler to switch views and clear the search bar when navigating to Home
-   const handleNavigation = (view) => {
-    setView(view);
-    if (view === "home") {
-      setSearchQuery(""); // Clear search input
-      setFilteredBooks(books); // Reset filtered books to show the entire list
-    }
-  };
-  
   return (
     <div>
       <nav style={{ marginBottom: "20px" }}>
         <button onClick={() => handleNavigation("home")}>Home</button>
         <button onClick={() => handleNavigation("plots")}>Plots</button>
-        
+        <button onClick={() => handleNavigation("genres")}>Genres</button>
+
         <input
           type="text"
           placeholder="Search by title or author"
@@ -74,9 +94,7 @@ function App() {
           onChange={handleSearch}
           style={{ marginLeft: "20px", padding: "5px" }}
         />
-        <button style={{ padding: "5px 10px" }}>
-          Search
-        </button>
+        <button style={{ padding: "5px 10px" }}>Search</button>
 
         <input
           type="text"
@@ -116,7 +134,6 @@ function App() {
                     <td>{book.genre}</td>
                     <td>{book.description}</td>
                     <td>{book.average_rating}</td>
-
                   </tr>
                 ))}
               </tbody>
@@ -130,8 +147,61 @@ function App() {
       {view === "plots" && (
         <div>
           <h1>Plots Page</h1>
-          <p>Plots and charts will be displayed here.</p>
-          {/* Placeholder content for the plots page */}
+          {genreData ? (
+            <div>
+              <h2>Genre Analysis</h2>
+              {/* Placeholder for plots */}
+              <p>Charts will be displayed here.</p>
+            </div>
+          ) : (
+            <p>Loading genre data...</p>
+          )}
+        </div>
+      )}
+
+      {view === "genres" && (
+        <div>
+          <h1>Genres</h1>
+          {genreData ? (
+            <ul>
+              {genreData.genres.map((genre, index) => (
+                <li key={index}>
+                  <button onClick={() => fetchTopBooksByGenre(genre)}>{genre}</button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>Loading genres...</p>
+          )}
+        </div>
+      )}
+
+      {view === "topBooks" && selectedGenre && (
+        <div>
+          <h1>Top Rated Books in {selectedGenre}</h1>
+          {topBooks.length > 0 ? (
+            <table border="1" cellPadding="10" cellSpacing="0">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Authors</th>
+                  <th>Avg Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topBooks.map((book, index) => (
+                  <tr key={index}>
+                    <td>{book.title}</td>
+                    <td>{book.authors}</td>
+                    <td>{book.average_rating}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>No top books available for this genre.</p>
+          )}
+          <button onClick={() => setView("genres")}>Back to Genres</button>
         </div>
       )}
     </div>
