@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import LibraryPage from './LibraryPage';
 import DataPage from './DataPage';
-import TopRatedBooksPage from './TopRatedBooksPage';
 import "bootswatch/dist/sketchy/bootstrap.min.css";
 import { Navbar, Nav, Container } from 'react-bootstrap';
 
@@ -11,8 +10,6 @@ function App() {
   const [books, setBooks] = useState([]);
   const [filteredBooks, setFilteredBooks] = useState([]);
   const [genreData, setGenreData] = useState(null);
-  const [topBooks, setTopBooks] = useState([]);
-  const [selectedGenre, setSelectedGenre] = useState(null);
 
   useEffect(() => {
     fetchBooks();
@@ -38,16 +35,6 @@ function App() {
     }
   };
 
-  const fetchTopBooksByGenre = async (genre) => {
-    try {
-      const response = await axios.get(`http://127.0.0.1:5000/top_books/${genre}`);
-      setTopBooks(response.data);
-      setSelectedGenre(genre);
-      setView("topbooks");
-    } catch (error) {
-      console.error("Error fetching top books:", error);
-    }
-  };
 
   const handleNavigation = (view) => {
     setView(view);
@@ -62,16 +49,13 @@ function App() {
             fetchBooks={fetchBooks}
           />
         );
-      case "data":
-        return <DataPage genreData={genreData} />;
-      case "topbooks":
-        return (
-          <TopRatedBooksPage
-            genre={selectedGenre}
-            topBooks={topBooks}
-            goBack={() => setView("data")}
-          />
-        );
+        case "data":
+          return (
+            <DataPage
+              genreData={genreData}
+              fetchGenreData={setGenreData}
+            />
+          );
       default:
         return <LibraryPage />;
     }
@@ -87,7 +71,6 @@ function App() {
             <Nav className="me-auto">
               <Nav.Link onClick={() => handleNavigation("library")}>Library</Nav.Link>
               <Nav.Link onClick={() => handleNavigation("data")}>Data</Nav.Link>
-              <Nav.Link onClick={() => handleNavigation("topbooks")}>Top Books</Nav.Link>
             </Nav>
           </Navbar.Collapse>
         </Container>

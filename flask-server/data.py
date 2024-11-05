@@ -35,8 +35,9 @@ def create_table():
     conn.commit()
     conn.close()
 
-def get_books_from_api(query, max_results=40, total_books=1000):
-    api_key = 'AIzaSyA3AIw4tAalM0pk9pARWBkqsWm0BBxT3R8'  # Replace with your actual API key
+
+def get_books_from_api(query, max_results=40, total_books=10):
+    api_key = 'AIzaSyA3AIw4tAalM0pk9pARWBkqsWm0BBxT3R8'  
     books = []
     start_index = 0
 
@@ -47,22 +48,20 @@ def get_books_from_api(query, max_results=40, total_books=1000):
             response.raise_for_status()
             data = response.json()
             books.extend(data.get('items', []))
-
             if len(data.get('items', [])) < max_results:
                 break
-
             start_index += max_results
-
         except requests.exceptions.RequestException as e:
             print(f"Error fetching data from Google Books API: {e}")
             break
 
     return books[:total_books]
 
+#every request fetches 10 more books and inserts to bookds.db 
 @app.route('/fetch_books', defaults={'query': 'books'}, methods=['GET'])
 @app.route('/fetch_books/<query>', methods=['GET'])
 def fetch_books(query):
-    books_data = get_books_from_api(query, max_results=40, total_books=2500)
+    books_data = get_books_from_api(query, max_results=40, total_books=10)
 
     if books_data:
         conn = get_db()

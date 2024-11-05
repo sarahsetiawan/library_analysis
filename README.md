@@ -9,11 +9,12 @@ specific authors, add, update, and deleting a book, and view analytics such as t
 ## Features
 
 - **List Books by Author**: Retrieve and display books written by a specified author.
-- **Add Book Information**: Input new book details into the database.
+- **Add Book**: Input new book into the database.
 - **Update Book Information**: Modify existing book details.
 - **Delete Book Information**: Remove books from the database.
-- **Most Read Books**: Visualize the most read books for each month.
-- **Top 5 Genres**: Analyze and display the top five book genres.
+- **Word Cloud**: Visualize most frequent author names.
+- **Histogram Authors vs. Genre**: A histogram comparing the amount of authors versus the genre
+- **Histogram Rating vs. Genre**: A histogram comparing the average rating versus the genre
 
 ## Tech Stack
 
